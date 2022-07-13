@@ -16,9 +16,11 @@ Additionally, you will need to create and store the following variables as proje
 2. `SLACK_DEFAULT_CHANNEL`
 
 Lastly, you will need to specify the following parameters for the `insightsdata` job:
-1. `projectslug` - the slug of your project. It takes the following form: `"gh|bb/orgname/projectname"`
-2. `workflow-names` - a comma delimited string of the workflow names you wish to see data for.
-3. `reporting-window` - the time period you want to get data for. Possible values are: `"24-hours"`, `"7-days"`, `"30-days"`, `"60-days"`, and `"90-days"`.
+1. `project-name` - the name of your project
+2. `org-name` - the name of your organization
+3. `vcs-name` - the name of your vcs (either `gh` or `bb`)
+4. `workflow-names` - a comma delimited string of the workflow names you wish to see data for.
+5. `reporting-window` - the time period you want to get data for. Possible values are: `"24-hours"`, `"7-days"`, `"30-days"`, `"60-days"`, and `"90-days"`.
 
 Example workflow configuration:
 
@@ -27,8 +29,9 @@ workflows:
   insightdata:
     jobs:
       - insightsdata:
-          projectname: "insights-test-repo"
-          org: "testorg"
+          project-name: "insights-test-repo"
+          org-name: "testorg"
+          vcs-name: "gh"
           workflow-names: "build_all_images,daily"
           reporting-window: "7-days"
           context:
