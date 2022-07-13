@@ -9,7 +9,7 @@ A example showing how to send CircleCI Insights data to Slack
 
 ## Setup
 
-Fork the project, and set it up on CircleCI. Following that, please create a [CircleCI Personal API Token](https://app.circleci.com/settings/user/tokens) and save it as a project variable named `CIRCLE_TOKEN`.
+Fork the project, and set it up on CircleCI. Following that, please create a [CircleCI Personal API Token](https://app.circleci.com/settings/user/tokens) and save it as a project level or contenxt variable named `CIRCLE_TOKEN`.
 
 Additionally, you will need to create and store the following variables as project variables or in a context:
 1. `SLACK_ACCESS_TOKEN`
