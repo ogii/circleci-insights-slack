@@ -33,7 +33,7 @@ workflows:
           org-name: "testorg"
           vcs-name: "gh"
           workflow-names: "build_all_images,daily"
-          reporting-window: "7-days"
+          reporting-window: "30-days"
           context:
             - slack-secrets
 ```
