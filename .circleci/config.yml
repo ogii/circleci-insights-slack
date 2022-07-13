@@ -6,9 +6,11 @@ orbs:
 jobs:
   insightsdata:
     parameters:
-      projectname:
+      project-name:
         type: string
-      org:
+      org-name:
+        type: string
+      vcs-name:
         type: string
       workflow-names:
         type: string
@@ -27,11 +29,11 @@ jobs:
             
             # Get insight data from API
             INSIGHT_DATA=$(curl --request GET \
-            --url 'https://circleci.com/api/v2/insights/gh/<< parameters.org >>/<< parameters.projectname >>/workflows?reporting-window=last-<< parameters.reporting-window >>&all-branches=true' \
+            --url 'https://circleci.com/api/v2/insights/<< parameters.vcs-name >>/<< parameters.org-name >>/<< parameters.project-name >>/workflows?reporting-window=last-<< parameters.reporting-window >>&all-branches=true' \
             --header "circle-token: $CIRCLE_TOKEN" | jq --arg workflows "$WORKFLOWS" '[.items[] | select(.name == ($workflows | split(",")[])) | {"type":"section","fields":[{"type":"mrkdwn","text":("Workflow Name: " + .name)},{"type":"mrkdwn","text":("Credits Used: " + (.metrics.total_credits_used|@sh))},{"type":"mrkdwn","text":("Failed Runs: " + (.metrics.failed_runs|@sh))},{"type":"mrkdwn","text":("Successful Runs: " + (.metrics.successful_runs|@sh))}]},{"type":"divider"}]')
            
             # Create base template to append to
-            echo '{"blocks":[{"type":"header","text":{"type":"plain_text","text":"Credit Usage Report for << parameters.projectname >> - << parameters.reporting-window >>","emoji":true}}]}' > template.json
+            echo '{"blocks":[{"type":"header","text":{"type":"plain_text","text":"Credit Usage Report for << parameters.project-name >> - << parameters.reporting-window >>","emoji":true}}]}' > template.json
             
             # Append insight data to base template
             CUSTOM_SLACK_TEMPLATE="$(jq -r --argjson INSIGHT_DATA "$INSIGHT_DATA" '.blocks += $INSIGHT_DATA' template.json)"
@@ -48,8 +50,9 @@ workflows:
   insightdata:
     jobs:
       - insightsdata:
-          projectname: "machine-executor-images"
-          org: "circleci"
+          project-name: "insights-test-repo"
+          org-name: "testorg"
+          vcs-name: "gh"
           workflow-names: "build_all_images,daily"
           reporting-window: "7-days"
           context:
