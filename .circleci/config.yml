@@ -1,0 +1,56 @@
+version: 2.1
+
+orbs: 
+  slack: circleci/slack@4.10.1
+
+jobs:
+  insightsdata:
+    parameters:
+      projectname:
+        type: string
+      org:
+        type: string
+      workflow-names:
+        type: string
+      reporting-window:
+        type: enum
+        enum: ["24-hours","7-days","30-days","60-days","90-days"]
+    docker:
+      - image: cimg/base:stable
+    resource_class: small
+    steps:
+      - run: 
+          name: Get workflow insight data
+          command: |
+            # Strip whitespaces from list of workflows
+            WORKFLOWS=$(echo "<< parameters.workflow-names >>" | sed 's/, /,/g' | sed 's/ ,/,/g' | xargs)
+            
+            # Get insight data from API
+            INSIGHT_DATA=$(curl --request GET \
+            --url 'https://circleci.com/api/v2/insights/gh/<< parameters.org >>/<< parameters.projectname >>/workflows?reporting-window=last-<< parameters.reporting-window >>&all-branches=true' \
+            --header "circle-token: $CIRCLE_TOKEN" | jq --arg workflows "$WORKFLOWS" '[.items[] | select(.name == ($workflows | split(",")[])) | {"type":"section","fields":[{"type":"mrkdwn","text":("Workflow Name: " + .name)},{"type":"mrkdwn","text":("Credits Used: " + (.metrics.total_credits_used|@sh))},{"type":"mrkdwn","text":("Failed Runs: " + (.metrics.failed_runs|@sh))},{"type":"mrkdwn","text":("Successful Runs: " + (.metrics.successful_runs|@sh))}]},{"type":"divider"}]')
+           
+            # Create base template to append to
+            echo '{"blocks":[{"type":"header","text":{"type":"plain_text","text":"Credit Usage Report for << parameters.projectname >> - << parameters.reporting-window >>","emoji":true}}]}' > template.json
+            
+            # Append insight data to base template
+            CUSTOM_SLACK_TEMPLATE="$(jq -r --argjson INSIGHT_DATA "$INSIGHT_DATA" '.blocks += $INSIGHT_DATA' template.json)"
+            
+            # Export complete template to .json file
+            echo $CUSTOM_SLACK_TEMPLATE > template2.json
+            # Make template available in later steps via the environment variable CUSTOM_SLACK_TEMPLATE
+            echo 'export CUSTOM_SLACK_TEMPLATE=$(jq . /home/circleci/project/template2.json)' >> $BASH_ENV
+      - slack/notify:
+          template: CUSTOM_SLACK_TEMPLATE
+          event: always
+
+workflows:
+  insightdata:
+    jobs:
+      - insightsdata:
+          projectname: "machine-executor-images"
+          org: "circleci"
+          workflow-names: "build_all_images,daily"
+          reporting-window: "7-days"
+          context:
+            - slack-secrets
