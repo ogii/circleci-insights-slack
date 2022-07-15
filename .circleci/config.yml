@@ -27,33 +27,41 @@ jobs:
             # Strip whitespaces from list of workflows
             WORKFLOWS=$(echo "<< parameters.workflow-names >>" | sed 's/, /,/g' | sed 's/ ,/,/g' | xargs)
             
+            # Generate project slug
+            PROJECT_SLUG="<< parameters.vcs-name >>/<< parameters.org-name >>/<< parameters.project-name >>"
+            
             # Get insight data from API
             INSIGHT_DATA=$(curl --request GET \
-            --url 'https://circleci.com/api/v2/insights/<< parameters.vcs-name >>/<< parameters.org-name >>/<< parameters.project-name >>/workflows?reporting-window=last-<< parameters.reporting-window >>&all-branches=true' \
-            --header "circle-token: $CIRCLE_TOKEN" | jq --arg workflows "$WORKFLOWS" '[.items[] | select(.name == ($workflows | split(",")[])) | {"type":"section","fields":[{"type":"mrkdwn","text":("Workflow Name: " + .name)},{"type":"mrkdwn","text":("Credits Used: " + (.metrics.total_credits_used|@sh))},{"type":"mrkdwn","text":("Failed Runs: " + (.metrics.failed_runs|@sh))},{"type":"mrkdwn","text":("Successful Runs: " + (.metrics.successful_runs|@sh))}]},{"type":"divider"}]')
-           
+            --url "https://circleci.com/api/v2/insights/$PROJECT_SLUG/workflows?reporting-window=last-<< parameters.reporting-window >>&all-branches=true" \
+            --header "circle-token: $CIRCLE_TOKEN")
+            
+            # Parse insight data and map to template
+            INSIGHT_MAP=$(echo $INSIGHT_DATA | jq --arg workflows "$WORKFLOWS" '[.items[] | select(.name == ($workflows | split(",")[])) | {"type":"section","fields":[{"type":"mrkdwn","text":("*Workflow Name*: " + .name)},{"type":"mrkdwn","text":("*Credits Used*: " + (.metrics.total_credits_used|@sh))},{"type":"mrkdwn","text":("*First Run*: " + (.window_start|@sh))},{"type":"mrkdwn","text":("*Last Run*: " + (.window_end|@sh))},{"type":"mrkdwn","text":("*Successful Runs*: " + (.metrics.successful_runs|@sh))},{"type":"mrkdwn","text":("*Failed Runs*: " + (.metrics.failed_runs|@sh))}]},{"type":"divider"}]')
+            
             # Create base template to append to
-            echo '{"blocks":[{"type":"header","text":{"type":"plain_text","text":"Credit Usage Report for << parameters.project-name >> - << parameters.reporting-window >>","emoji":true}}]}' > template.json
+            echo '{"blocks":[{"type":"header","text":{"type":"plain_text","text":"Credit Usage Report for << parameters.org-name >>/<< parameters.project-name >>","emoji":true}},{"type":"context","elements":[{"type":"mrkdwn","text":"*Period:* << parameters.reporting-window >> <https://app.circleci.com/insights/<< parameters.vcs-name >>/<< parameters.org-name >>/<< parameters.project-name >>/?reporting-window=last-<< parameters.reporting-window >>|View on CircleCI>"}]}]}' > template.json
             
             # Append insight data to base template
-            CUSTOM_SLACK_TEMPLATE="$(jq -r --argjson INSIGHT_DATA "$INSIGHT_DATA" '.blocks += $INSIGHT_DATA' template.json)"
+            CUSTOM_SLACK_TEMPLATE="$(jq -r --argjson INSIGHT_MAP "$INSIGHT_MAP" '.blocks += $INSIGHT_MAP' template.json)"
             
             # Export complete template to .json file
             echo $CUSTOM_SLACK_TEMPLATE > template2.json
+
             # Make template available in later steps via the environment variable CUSTOM_SLACK_TEMPLATE
-            echo 'export CUSTOM_SLACK_TEMPLATE=$(jq . /home/circleci/project/template2.json)' >> $BASH_ENV
+            echo 'export CUSTOM_SLACK_TEMPLATE=$(jq . template2.json)' >> $BASH_ENV
       - slack/notify:
           template: CUSTOM_SLACK_TEMPLATE
           event: always
 
 workflows:
-  insightdata:
+  workflow1:
     jobs:
       - insightsdata:
-          project-name: "insights-test-repo"
-          org-name: "testorg"
+          project-name: "machine-executor-images"
+          org-name: "circleci"
           vcs-name: "gh"
-          workflow-names: "build_all_images,daily"
-          reporting-window: "30-days"
+          workflow-names: "build_all_images ,daily "
+          reporting-window: "7-days"
           context:
             - slack-secrets
+ 
