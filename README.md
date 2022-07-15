@@ -22,11 +22,15 @@ Lastly, you will need to specify the following parameters for the `insightsdata`
 4. `workflow-names` - a comma delimited string of the workflow names you wish to see data for.
 5. `reporting-window` - the time period you want to get data for. Possible values are: `"24-hours"`, `"7-days"`, `"30-days"`, `"60-days"`, and `"90-days"`.
 
-Example workflow configuration:
+You can additional set up a scheduled pipeline to run the workflow periodically. Assuming you create a scheduled pipeline with the name ``, a sample workflow definition would look like the following:
 
 ```
 workflows:
   insightdata:
+    when:
+      and:
+        - equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
+        - equal: [ "insight_schedule", << pipeline.schedule.name >> ]
     jobs:
       - insightsdata:
           project-name: "insights-test-repo"
