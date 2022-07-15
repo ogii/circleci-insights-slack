@@ -46,7 +46,6 @@ jobs:
             
             # Export complete template to .json file
             echo $CUSTOM_SLACK_TEMPLATE > template2.json
-
             # Make template available in later steps via the environment variable CUSTOM_SLACK_TEMPLATE
             echo 'export CUSTOM_SLACK_TEMPLATE=$(jq . template2.json)' >> $BASH_ENV
       - slack/notify:
@@ -55,6 +54,10 @@ jobs:
 
 workflows:
   insightdata:
+    when:
+      and:
+        - equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
+        - equal: [ "insight_schedule", << pipeline.schedule.name >> ]
     jobs:
       - insightsdata:
           project-name: "insights-test-repo"
@@ -64,4 +67,4 @@ workflows:
           reporting-window: "30-days"
           context:
             - slack-secrets
- 
+            
