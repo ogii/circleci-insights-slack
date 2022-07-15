@@ -54,14 +54,14 @@ jobs:
           event: always
 
 workflows:
-  workflow1:
+  insightdata:
     jobs:
       - insightsdata:
-          project-name: "machine-executor-images"
-          org-name: "circleci"
+          project-name: "insights-test-repo"
+          org-name: "testorg"
           vcs-name: "gh"
-          workflow-names: "build_all_images ,daily "
-          reporting-window: "7-days"
+          workflow-names: "build_all_images,daily"
+          reporting-window: "30-days"
           context:
             - slack-secrets
  
